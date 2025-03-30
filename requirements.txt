@@ -1,0 +1,7 @@
+PyPDF2
+pymupdf
+Pillow
+pdfplumber
+pytesseract
+camelot-py[cv]
+pandas

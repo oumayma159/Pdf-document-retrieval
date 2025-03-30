@@ -1,0 +1,64 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore virtual environment
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Ignore extracted images and markdown files
+extracted_images/
+*.png
+*.jpg
+*.jpeg
+*.md
+
+# Ignore temp files
+temp_tesseract/
+temp/
+*.tmp
+*.ppm
+
+# IDE-related files
+.vscode/
+.idea/
+
+# Ignore compiled Python files
+*.pyo
+*.egg
+*.manifest
+*.spec
+
+# Ignore logs and databases
+*.log
+*.sqlite3
+
+# Ignore PyInstaller build files
+build/
+dist/
+*.egg-info/
+develop-eggs/
+wheels/
+downloads/
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Ignore test and coverage reports
+.tox/
+.coverage
+.coverage.*
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Ignore temporary or backup files
+*.bak
+*.orig
