@@ -1,7 +1,6 @@
-PyPDF2
-pymupdf
-Pillow
-pdfplumber
 pytesseract
-camelot-py[cv]
-pandas
+pdfplumber
+PyMuPDF
+Pillow
+torch
+transformers

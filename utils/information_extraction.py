@@ -1,99 +1,81 @@
-import PyPDF2
-
 import fitz
 import os
-from PIL import Image
-from io import BytesIO
-
 import pdfplumber
 
-# PyPDF2 
-def extract_text_from_pdf(file_path,page_num):
-    extracted_text = ''    
-    with open(file_path, 'rb') as file:
-        reader = PyPDF2.PdfReader(file)
-        pages = len(reader.pages)
-        if page_num is not None :
-            page = reader.pages[page_num]
-            text = page.extract_text().strip()
-            if text:
-                extracted_text += text 
-    return extracted_text
 
-#  fitz (PyMuPDF)
-# def extract_images_from_pdf(file_path,page_num):
-#     extracted_images = []   
-#     with fitz.open(file_path) as file:
-#         if page_num is not None:
-#             page = file.load_page(page_num)  
-#             image_list = page.get_images(full=True)
-#             if image_list:
-#                 for img in image_list:
-#                     xref = img[0]
-#                     base_image = file.extract_image(xref)
-#                     image_bytes = base_image["image"]
-#                     pil_image = Image.open(BytesIO(image_bytes))
-#                     extracted_images.append(pil_image)   
-#     return extracted_images
-def extract_images_from_pdf(file_path, page_num, output_dir="extracted_images"):
-    extracted_images = []
-    os.makedirs(output_dir, exist_ok=True) 
-    with fitz.open(file_path) as file:
-        if page_num is not None:
-            page = file.load_page(page_num)
-            image_list = page.get_images(full=True)        
-            for img_index, img in enumerate(image_list):
-                xref = img[0]
-                base_image = file.extract_image(xref)
-                image_bytes = base_image["image"]
-                image_ext = base_image["ext"]
-                image_filename = f"page_{page_num+1}_img_{img_index}.{image_ext}"
-                image_path = os.path.join(output_dir, image_filename)
-                with open(image_path, "wb") as img_file:
-                    img_file.write(image_bytes)               
-                extracted_images.append({
-                    "path": image_path,
-                    "width": base_image["width"],
-                    "height": base_image["height"],
-                    "xref": xref
-                }) 
-    return extracted_images
-
-# pdfplumber
-def extract_tables_from_pdf(file_path,page_num):
-    extracted_tables = []   
-    with pdfplumber.open(file_path) as pdf:
-        if page_num is not None:
-            page = pdf.pages[page_num]
-            tables = page.extract_tables()
-            if tables:
-                for table in tables:
-                    if table:
-                        extracted_tables.append(table)  
-    return extracted_tables
-
-
-def extract_all(file_path):
+def extract_all(file_path, image_output_dir="extracted_images"):
     all_pages = {
-            'total_pages_treated': 0,
-            'data_per_page': [],
-            'total_text_extracted': 0,
-            'total_images_extracted': 0,
-            'total_tables_extracted': 0
-        }    
+        'total_pages_treated': 0,
+        'data_per_page': [],
+        'total_text_extracted': 0,
+        'total_images_extracted': 0,
+        'total_tables_extracted': 0
+    }
     with pdfplumber.open(file_path) as pdf:
-        for i, page in enumerate(pdf.pages):
+        total_pages = len(pdf.pages)
+        for i in range(total_pages):
+            ordered_content = extract_ordered_content(file_path, i, image_output_dir=image_output_dir)
             page_data = {
-                'page_number': i+1,
-                'text': extract_text_from_pdf(file_path,page_num=i),
-                'images': extract_images_from_pdf(file_path,page_num=i),
-                'tables': extract_tables_from_pdf(file_path,page_num=i),
+                'page_number': i + 1,
+                'ordered_content': ordered_content,  
                 'verification': None
             }
+            num_tables = sum(1 for item in ordered_content if item["type"] == "table")
+            num_images = sum(1 for item in ordered_content if item["type"] == "image")
+            total_text_chars = sum(len(item["content"]) for item in ordered_content if item["type"] == "text")
+            
             all_pages['total_pages_treated'] += 1
-            all_pages['total_text_extracted'] += len(page_data['text'])
-            all_pages['total_images_extracted'] += len(page_data['images'])
-            all_pages['total_tables_extracted'] += len(page_data['tables'])
+            all_pages['total_text_extracted'] += total_text_chars
+            all_pages['total_images_extracted'] += num_images
+            all_pages['total_tables_extracted'] += num_tables
             all_pages['data_per_page'].append(page_data)
-               
     return all_pages
+
+
+# top here designates position (y) of the element on the page
+def extract_ordered_content(file_path, page_num, image_output_dir="extracted_images"):
+    contents = []  
+    with pdfplumber.open(file_path) as pdf:
+        page = pdf.pages[page_num]
+        # extract text (PyPDF2 can extract text too but isnt layout aware)
+        lines = page.extract_text(layout=True).split("\n")
+        for line in lines:
+            print(line)
+            bbox = page.search(line)
+            print(bbox)
+            if bbox:
+                contents.append({
+                    "type": "text",
+                    "content": line,
+                    "top": bbox[0]["top"],
+                    "bottom": max(c["bottom"] for c in line_chars)
+                })
+        # tables (also pdfplumber)
+        for table in page.find_tables():
+            position = table.bbox[1]
+            contents.append({
+                "type": "table",
+                "content": table.extract(),  
+                "top": position
+            })
+        # 3. Get images (fitz)
+        with fitz.open(file_path) as doc:
+            fitz_page = doc.load_page(page_num)
+            image_list = fitz_page.get_images(full=True)  
+            for img_index, img in enumerate(image_list):
+                xref = img[0]
+                base_image = doc.extract_image(xref)
+                image_ext = base_image["ext"]
+                image_bytes = base_image["image"]
+                image_filename = f"page_{page_num+1}_img_{img_index}.{image_ext}"
+                image_path = os.path.join(image_output_dir, image_filename)
+                os.makedirs(image_output_dir, exist_ok=True)
+                with open(image_path, "wb") as img_file:
+                    img_file.write(image_bytes)
+                contents.append({
+                    "type": "image",
+                    "content": image_path,
+                    "top": img[3] 
+                })
+    contents = sorted(contents, key=lambda x: x["top"])
+    return contents

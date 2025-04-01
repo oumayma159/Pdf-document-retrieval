@@ -19,8 +19,7 @@ def convert_images_to_markdown(images, markdown_text, page_num):
        
 def convert_tables_to_markdown(tables, markdown_text):
     if not tables:
-        return markdown_text
-    
+        return markdown_text   
     markdown_text += "### Tables\n\n"   
     for i, table in enumerate(tables, 1):
         if isinstance(table, dict):
