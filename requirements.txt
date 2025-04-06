@@ -1,6 +1,7 @@
-pytesseract
+accelerate
 pdfplumber
-PyMuPDF
 Pillow
+PyMuPDF
+pytesseract
 torch
 transformers
