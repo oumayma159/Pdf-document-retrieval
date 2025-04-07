@@ -11,12 +11,8 @@ ENV/
 env.bak/
 venv.bak/
 
-# Ignore extracted images and markdown files
-extracted_images/
-*.png
-*.jpg
-*.jpeg
-*.md
+# Ignore extracted artifacts
+results/
 
 # Ignore temp files
 temp_tesseract/
