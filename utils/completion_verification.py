@@ -56,6 +56,10 @@ def get_pages_to_verify(file_path, extracted_data):
                 for item in page_contents
                 if item["type"] == "text"
             ]
+
+            if not paragraphs:
+                continue
+
             linguistic_acceptability = check_linguistic_acceptability(paragraphs)
 
             if linguistic_acceptability < linguistic_acceptability_threshold:
